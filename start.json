@@ -5,21 +5,26 @@
     "params": {
       "venv": "env",
       "path": "ComfyUI",
-      "env": { "PYTORCH_MPS_HIGH_WATERMARK_RATIO": "0.0" },
-      "message": "python main.py {{platform === 'darwin' ? '--force-fp16' : ''}}",
-      "on": [{ "event": "/http:\/\/[0-9.:]+/", "done": true }]
+      "env": {
+        "PYTORCH_MPS_HIGH_WATERMARK_RATIO": "0.0",
+        "PYTORCH_ENABLE_MPS_FALLBACK": "1"
+      },
+      "message": "{{platform === 'win32' && gpu === 'amd' ? 'python main.py --directml' : 'python main.py'}}",
+      "on": [{
+        "event": "/(http:\\/\\/[0-9.:]+)/",
+        "done": true
+      }, {
+        "event": "/errno/i",
+        "break": false
+      }, {
+        "event": "/error:/i",
+        "break": false
+      }]
     }
   }, {
-    "method": "self.set",
+    "method": "local.set",
     "params": {
-      "session.json": {
-        "url": "{{input.event[0]}}"
-      }
-    }
-  }, {
-    "method": "browser.open",
-    "params": {
-      "uri": "{{self.session.url}}"
+      "url": "{{input.event[1]}}"
     }
   }]
 }

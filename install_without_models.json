@@ -5,11 +5,13 @@
     "args": "-c conda-forge"
   }],
   "run": [{
+    "when": "{{!exists('ComfyUI')}}",
     "method": "shell.run",
     "params": {
       "message": "git clone https://github.com/comfyanonymous/ComfyUI.git"
     }
   }, {
+    "when": "{{!exists('ComfyUI/custom_nodes/ComfyUI-Manager')}}",
     "method": "shell.run",
     "params": {
       "message": "git clone https://github.com/ltdrdata/ComfyUI-Manager",
@@ -21,11 +23,20 @@
       "venv": "env",
       "path": "ComfyUI",
       "message": [
-        "{{pip.install.torch}}",
-        "pip install -r requirements.txt"
+        "uv pip install -r requirements.txt"
       ]
     }
   }, {
+    "method": "script.start",
+    "params": {
+      "uri": "torch.js",
+      "params": {
+        "venv": "env",
+        "path": "ComfyUI"
+      }
+    }
+  }, {
+    "when": "{{!exists('workflows')}}",
     "method": "shell.run",
     "params": {
       "message": "mkdir workflows"
@@ -38,17 +49,6 @@
         "git clone https://github.com/cocktailpeanut/comfymp4"
       ],
       "path": "workflows"
-    }
-  }, {
-    "method": "input",
-    "params": {
-      "title": "Install Success",
-      "description": "Go back to the dashboard and launch the app!"
-    }
-  }, {
-    "method": "browser.open",
-    "params": {
-      "uri": "/?selected=ComfyUI"
     }
   }]
 }

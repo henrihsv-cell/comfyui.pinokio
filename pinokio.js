@@ -1,128 +1,152 @@
-const os = require('os')
-const fs = require('fs')
-const path = require("path")
-const exists = (filepath) => {
-  return new Promise(r=>fs.access(filepath, fs.constants.F_OK, e => r(!e)))
-}
 module.exports = {
+  version: "5.0",
   title: "ComfyUI",
   description: "Stable Diffusion & Stable Video Diffusion GUI",
   icon: "icon.png",
-  menu: async (kernel) => {
-    let installed = await exists(path.resolve(__dirname, "ComfyUI", "env"))
-    if (installed) {
-      let session = (await kernel.loader.load(path.resolve(__dirname, "session.json"))).resolved
-      let gpu_running = kernel.running(__dirname, "start.json")
-      let cpu_running = kernel.running(__dirname, "start_cpu.json")
-      let running = cpu_running || gpu_running
+  menu: async (kernel, info) => {
+    let installed = info.exists("ComfyUI/env")
+    let running = {
+      install: info.running("install.json"),
+      install_mac: info.running("install_mac.json"),
+      start: info.running("start.json"),
+      start_cpu: info.running("start_cpu.json"),
+      update: info.running("update.json"),
+      reset: info.running("reset.json")
+    }
 
-      let arr
+    let downloading = [
+      "download-turbo.json",
+      "download-svd-xt.json",
+      "download-svd.json",
+      "download-lcm-lora.json"
+    ]
+    let is_downloading = null
+    for (let item of downloading) {
+      if (info.running(item)) {
+        is_downloading = item
+        break
+      }
+    }
 
-      if (gpu_running) {
-        arr = [{
-          icon: "fa-solid fa-spin fa-circle-notch",
-          text: "Running"
-        }, {
-          icon: "fa-solid fa-desktop",
-          text: "Server",
-          href: "start.json",
-          params: { fullscreen: true }
-        }]
-        if (session && session.url) {
-          arr.push({
+    if (running.install || running.install_mac) {
+      return [{
+        default: true,
+        icon: "fa-solid fa-plug",
+        text: "Installing",
+        href: running.install ? "install.json" : "install_mac.json",
+      }]
+    } else if (installed) {
+      if (running.start || running.start_cpu) {
+        let scriptName = running.start ? "start.json" : "start_cpu.json"
+        let local = info.local(scriptName)
+        if (local && local.url) {
+          return [{
+            default: true,
             icon: "fa-solid fa-rocket",
             text: "Open Web UI",
-            href: session.url,
-            target: "_blank"
-          })
+            popout: true,
+            href: local.url,
+          }, {
+            icon: "fa-solid fa-terminal",
+            text: "Terminal",
+            href: scriptName,
+          }]
+        } else {
+          return [{
+            default: true,
+            icon: "fa-solid fa-terminal",
+            text: "Terminal",
+            href: scriptName,
+          }]
         }
-      } else if (cpu_running) {
-        arr = [{
-          icon: "fa-solid fa-spin fa-circle-notch",
-          text: "Running"
-        }, {
-          icon: "fa-solid fa-desktop",
-          text: "Server",
-          href: "start_cpu.json",
-          params: { fullscreen: true }
+      } else if (is_downloading) {
+        return [{
+          default: true,
+          icon: "fa-solid fa-terminal",
+          text: "Downloading",
+          href: is_downloading,
         }]
-        if (session && session.url) {
-          arr.push({
-            icon: "fa-solid fa-rocket",
-            text: "Open Web UI",
-            href: session.url,
-            target: "_blank"
-          })
-        }
+      } else if (running.update) {
+        return [{
+          default: true,
+          icon: "fa-solid fa-terminal",
+          text: "Updating",
+          href: "update.json",
+        }]
+      } else if (running.reset) {
+        return [{
+          default: true,
+          icon: "fa-solid fa-terminal",
+          text: "Resetting",
+          href: "reset.json",
+        }]
       } else {
-        arr = [{
+        return [{
+          default: true,
           icon: "fa-solid fa-power-off",
-          text: "Launch",
+          text: "Start",
           href: "start.json",
-          params: { fullscreen: true, run: true }
         }, {
           icon: "fa-solid fa-power-off",
-          text: "Launch CPU Mode (Slow)",
+          text: "Start CPU Mode (Slow)",
           href: "start_cpu.json",
-          params: { fullscreen: true, run: true }
+        }, {
+          icon: "fa-solid fa-download",
+          text: "Download Models",
+          menu: [{
+            text: "SDXL Turbo",
+            icon: "fa-solid fa-download",
+            href: "download-turbo.json",
+            mode: "refresh"
+          }, {
+            text: "Stable Video XT",
+            icon: "fa-solid fa-download",
+            href: "download-svd-xt.json",
+            mode: "refresh"
+          }, {
+            text: "Stable Video",
+            icon: "fa-solid fa-download",
+            href: "download-svd.json",
+            mode: "refresh"
+          }, {
+            text: "LCM LoRA",
+            icon: "fa-solid fa-download",
+            href: "download-lcm-lora.json",
+            mode: "refresh"
+          }]
+        }, {
+          icon: "fa-solid fa-rotate",
+          text: "Update",
+          href: "update.json",
+        }, {
+          icon: "fa-solid fa-plug",
+          text: "Reinstall",
+          href: "install.json",
+        }, {
+          icon: "fa-regular fa-circle-xmark",
+          text: "Reset",
+          href: "reset.json",
+          confirm: "Are you sure you wish to reset? This will delete the virtual environment and you will need to reinstall."
         }]
       }
-
-      arr = arr.concat([{
-        icon: "fa-solid fa-rotate",
-        text: "Update",
-        href: "update.json",
-        params: { fullscreen: true, run: true }
-      }, {
-        text: "Download SDXL Turbo Model",
-        icon: "fa-solid fa-download",
-        href: "download-turbo.json",
-        params: {
-          run: true,
-          fullscreen: true
-        }
-      }, {
-        text: "Download Stable Video XT Model",
-        icon: "fa-solid fa-download",
-        href: "download-svd-xt.json",
-        params: {
-          run: true,
-          fullscreen: true
-        }
-      }, {
-        text: "Download Stable Video Model",
-        icon: "fa-solid fa-download",
-        href: "download-svd.json",
-        params: {
-          run: true,
-          fullscreen: true
-        }
-      }, {
-        text: "Download LCM LoRA",
-        icon: "fa-solid fa-download",
-        href: "download-lcm-lora.json",
-        params: {
-          run: true,
-          fullscreen: true
-        }
-      }])
-      return arr
     } else {
       if (kernel.platform === "darwin" && kernel.arch === "arm64") {
         return [{
-          html: '<i class="fa-solid fa-plug"></i> Install with Stable Video Support (Takes around 20 minutes)',
-          type: "link",
-          href: "install_mac.json?run=true&fullscreen=true"
+          default: true,
+          icon: "fa-solid fa-plug",
+          text: "Install with Stable Video Support",
+          href: "install_mac.json",
         }, {
-          html: '<i class="fa-solid fa-plug"></i> Install without Stable Video (Quick)',
-          type: "link",
-          href: "install.json?run=true&fullscreen=true"
+          icon: "fa-solid fa-plug",
+          text: "Install (Quick)",
+          href: "install.json",
         }]
       } else {
         return [{
-          html: '<i class="fa-solid fa-plug"></i> Install',
-          type: "link",
-          href: "install.json?run=true&fullscreen=true"
+          default: true,
+          icon: "fa-solid fa-plug",
+          text: "Install",
+          href: "install.json",
         }]
       }
     }

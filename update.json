@@ -23,15 +23,13 @@
       "path": "workflows/ComfyUI_examples"
     }
   }, {
-    "method": "input",
+    "method": "shell.run",
     "params": {
-      "title": "Updated",
-      "description": "Update successful. Restart the app from the dashboard"
-    }
-  }, {
-    "method": "browser.open",
-    "params": {
-      "uri": "/?selected=ComfyUI"
+      "path": "ComfyUI",
+      "venv": "env",
+      "message": [
+        "uv pip install -r requirements.txt"
+      ]
     }
   }]
 }
